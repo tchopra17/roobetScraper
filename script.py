@@ -1,5 +1,6 @@
 import time
 import json
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
@@ -21,6 +22,13 @@ driver.find_element_by_tag_name('body').send_keys(Keys.TAB)
 driver.find_element_by_tag_name('body').send_keys(Keys.TAB)
 driver.find_element_by_tag_name('body').send_keys(Keys.ENTER)
 actions = ActionChains(driver)
-actions.move_by_offset( 795, 718).click().perform()
+#actions.move_by_offset( 795, 718).click().perform()
 a = driver.find_element(By.CSS_SELECTOR, ".tick_2dJyV:nth-child(1)").text
-print(a)
+df = pd.DataFrame([[a, pd.datetime.now()]], columns=(["Crash Point"], ["datetime"]))
+df.to_csv("scraped.csv")
+while True:
+    b = driver.find_element(By.CSS_SELECTOR, ".tick_2dJyV:nth-child(1)").text
+    if b != a:
+        a = b
+        bdf = pd.DataFrame([[b, pd.datetime.now()]], columns=(["Crash Point"], ["datetime"]))
+        bdf.to_csv("scraped.csv", mode='a', header=False)
