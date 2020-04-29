@@ -25,7 +25,7 @@ actions = ActionChains(driver)
 #actions.move_by_offset( 795, 718).click().perform()
 a = driver.find_element(By.CSS_SELECTOR, ".tick_2dJyV:nth-child(1)").text
 df = pd.DataFrame([[a, pd.datetime.now()]], columns=(["Crash Point"], ["datetime"]))
-df.to_csv("scraped.csv")
+df.to_csv("scraped.csv",  mode='a', header=False)
 while True:
     b = driver.find_element(By.CSS_SELECTOR, ".tick_2dJyV:nth-child(1)").text
     if b != a:
