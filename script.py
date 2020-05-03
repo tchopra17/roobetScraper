@@ -40,7 +40,7 @@ def fetch(driver):
     df = pd.DataFrame([[a, pd.datetime.now()]], columns=(["Crash Point"], ["datetime"]))
     df.to_csv("scraped.csv",  mode='a', header=False)
 
-
+    anal = analysis("scraped.csv")
     while True:
         b = driver.find_element(By.CSS_SELECTOR, ".tick_2dJyV:nth-child(1)").text
         if b != a:
@@ -48,8 +48,9 @@ def fetch(driver):
             print("---- Last Crash: " + str(b))
             bdf = pd.DataFrame([[b, pd.datetime.now()]], columns=(["Crash Point"], ["datetime"]))
             bdf.to_csv("scraped.csv", mode='a', header=False)
-            anal = analysis("scraped.csv")
-            anal.main()
+            b = b[:-1]
+            b = float(b)
+            anal.main(b, 1.2)
 
 
 
