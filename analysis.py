@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import os.path as path
 
 
 class analysis():
@@ -16,34 +16,51 @@ class analysis():
         self.countLoss = None
         self.countWins = None
         self.optimal = pd.DataFrame()
+        self.arr = None
+        self.cl_arr = None
+        self.cw_arr = None
+
 
     def main(self, curr, max_cash_out):
-        if (self.df.empty):
-            self.df = self.prepData(max_cash_out)
-            self.groupedLoss = self.df.groupby(self.cl)
-            self.countLoss = self.groupedLoss.agg("count")
-            self.countLoss = self.countLoss.drop(self.countLoss.columns[[1,2,3]], axis=1)
-            self.groupedWins = self.df.groupby(self.cw)
-            self.countWins= self.groupedWins.agg("count")
-            self.countWins = self.countWins.drop(self.countWins.columns[[1,2,3]], axis=1)
-            self.optimalBets(max_cash_out)
-
-        if (curr < max_cash_out):
-            self.loss += 1
-            self.wins = 0
-        else:
-            self.loss = 0
-            self.wins += 1
-
-
-        print("----CL: " + str(self.loss))
-        print("----CW: " + str(self.wins))
-        if(self.wins == 0):
-            a = self.optimal[self.optimal['loss'] == self.loss]
-            print("Best cash out point " + str(a.loc[a['loss_profit'].idxmax(), 'cash_out_loss']) + " at profit of " + str(max(a['loss_profit'])))
-        else:
-            a = self.optimal[self.optimal['win'] == self.wins]
-            print("Best cash out point " + str(a.loc[a['win_profit'].idxmax(), 'cash_out_win']) + " at profit of " + str(max(a['win_profit'])))
+        if (self.optimal.empty):
+            if path.exists('optimal.csv'):
+                self.optimal = pd.read_csv('optimal.csv')
+                self.df = self.prepData(max_cash_out)
+                self.arr = (np.arange(1.01, 2.01, 0.01))
+                self.cl_arr = (np.zeros(len(self.arr)))
+                self.cw_arr = (np.zeros(len(self.arr)))
+            else:
+                self.optimalBets(2)
+                self.arr = (np.arange(1.01, 2.01, 0.01))
+                self.cl_arr = (np.zeros(len(self.arr)))
+                self.cw_arr = (np.zeros(len(self.arr)))
+        i = 0
+        best = -9999
+        best_price = 0
+        while i < len(self.arr):
+            if self.arr[i] < curr:
+                self.cl_arr[i] += 1
+                self.cw_arr[i] = 0
+            else:
+                self.cl_arr[i] = 0
+                self.cw_arr[i] += 1
+            a = self.optimal[self.optimal['cash_out_loss'] == round(self.arr[i], 2)]
+            a = a[a['loss'] == self.cl_arr[i]]
+            if not a.empty:
+                m = max(a['loss_profit'])
+                if m > best:
+                    best = m
+                    best_price = round(self.arr[i], 2)
+            else:
+                b = self.optimal[self.optimal['win'] == self.wins]
+                b = b[b['win'] == self.cl_arr[i]]
+                if not b.empty:
+                    m = max(b['win_profit'])
+                    if m > best:
+                        best = m
+                        best_price = round(self.arr[i], 2)
+            i += 1
+        print("Best cash out point " + str(best_price) + " at profit of " + str(best))
         print("_________________________________________________________")
         #breakEven(cp)
 
@@ -75,9 +92,9 @@ class analysis():
                 print("Percentile " + str(i) + " is: " + str(np.percentile(column, i)))
 
     def optimalBets(self, point=2):
-        cash = 1
+        cash = 1.01
         index = 0
-        self.optimal = pd.DataFrame(index=range(2000))
+        self.optimal = pd.DataFrame(index=range(4000))
         self.optimal['cash_out_loss'] = 0.0
         self.optimal['loss'] = 0
         self.optimal['loss_profit'] = 0.0
@@ -85,21 +102,30 @@ class analysis():
         self.optimal['win'] = 0
         self.optimal['win_profit'] = 0.0
         while cash <= point:
+            self.df = self.prepData(cash)
+            self.groupedLoss = self.df.groupby(self.cl)
+            self.countLoss = self.groupedLoss.agg("count")
+            self.countLoss = self.countLoss.drop(self.countLoss.columns[[1,2,3]], axis=1)
+
             for i in range(1, len(self.countLoss)-1):
                 perc = self.countLoss["Unnamed: 0.1"][i+1] / self.countLoss["Unnamed: 0.1"][i]
-                self.optimal['cash_out_loss'][index] = cash
+                self.optimal['cash_out_loss'][index] = round(cash, 2)
                 self.optimal['loss'][index] = i
-                self.optimal['loss_profit'][index] = (1-perc)*(cash - 1) - (perc * 1)
+                self.optimal['loss_profit'][index] = round((1-perc)*(cash - 1) - (perc * 1), 2)
                 index += 1
             cash += 0.01
         index = 0
-        cash = 1
+        cash = 1.01
         while cash <= point:
+            self.df = self.prepData(cash)
+            self.groupedWins = self.df.groupby(self.cw)
+            self.countWins= self.groupedWins.agg("count")
+            self.countWins = self.countWins.drop(self.countWins.columns[[1,2,3]], axis=1)
             for i in range(1, len(self.countWins)-1):
                 perc = self.countWins["Unnamed: 0.1"][i+1] / self.countWins["Unnamed: 0.1"][i]
-                self.optimal['cash_out_win'][index] = cash
+                self.optimal['cash_out_win'][index] = round(cash, 2)
                 self.optimal['win'][index] = i
-                self.optimal['win_profit'][index] = (perc)*(cash - 1) - ((1-perc) * 1)
+                self.optimal['win_profit'][index] = round((perc)*(cash - 1) - ((1-perc) * 1), 2)
                 index += 1
             cash += 0.01
         self.optimal.to_csv("optimal.csv")
