@@ -50,7 +50,7 @@ def fetch(driver):
             bdf.to_csv("scraped.csv", mode='a', header=False)
             b = b[:-1]
             b = float(b)
-            anal.main(b, 1.2)
+            anal.main(b, 1.5)
 
 
 
